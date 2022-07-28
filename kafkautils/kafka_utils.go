@@ -5,6 +5,8 @@ package kafkautils
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -59,11 +61,24 @@ func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
 	}
 	l.Println("Loaded certificate and key file for Kafka.")
 
+	// Add certificate as root CA.
+	rawCert, err := os.ReadFile(certFile)
+	if err != nil {
+		return nil, err
+	}
+	ourRootCAs := x509.NewCertPool()
+	if ok := ourRootCAs.AppendCertsFromPEM([]byte(rawCert)); !ok {
+		return nil, errors.New("failed to parse root certificate")
+	}
+
 	return &kafka.Writer{
 		Addr:  kafka.TCP(kafkaBroker),
 		Topic: kafkaTopic,
 		Transport: &kafka.Transport{
-			TLS: &tls.Config{Certificates: []tls.Certificate{cert}},
+			TLS: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+				RootCAs:      ourRootCAs,
+			},
 		},
 	}, nil
 }
