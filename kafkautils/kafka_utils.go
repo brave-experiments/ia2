@@ -96,6 +96,8 @@ func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
 			TLS: &tls.Config{
 				Certificates: []tls.Certificate{cert},
 				RootCAs:      ourRootCAs,
+				// FIXME: This is bad, and must not be merged into master.
+				InsecureSkipVerify: true,
 			},
 		},
 	}, nil
